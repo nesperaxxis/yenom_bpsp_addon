@@ -117,14 +117,24 @@ namespace BusinessPartnerSpecialPrice
                             
                             while(!isExists && s_priceMtx.RowCount >= i)
                             {
-                                SAPbouiCOM.EditText _itemCodeCol = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("1").Cells.Item(i).Specific;                                
-                                if (_itemCodeCol.Value?.ToString().ToLower() == item.ItemCode.ToLower())
+                                SAPbouiCOM.EditText _itemCodeCol = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("1").Cells.Item(i).Specific;
+                                SAPbouiCOM.EditText _itmType = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("U_ItemType").Cells.Item(i).Specific;
+
+                                var checkBPCode = (SAPbobsCOM.Recordset)oCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                                checkBPCode.DoQuery("SELECT s.Substitute, i.U_ITEM_TYPE " + 
+                                                    "FROM OSCN s JOIN OITM i ON i.ItemCode = s.ItemCode " + 
+                                                    "WHERE COALESCE(s.ItemCode,'') <> '' AND s.CardCode ='" + BPCode + "' " + 
+                                                    "AND COALESCE(s.ItemCode,'') = '" + _itemCodeCol +  "' AND i.frozenfor = 'N' AND i.validfor = 'Y'");
+                                var bpCatCode = Convert.ToString(checkBPCode.Fields.Item(0).Value);
+                                var itmType = Convert.ToString(checkBPCode.Fields.Item(1).Value);
+
+
+                                if (_itemCodeCol.Value?.ToString().ToLower() == item.ItemCode.ToLower() || (bpCatCode == item.BPCatalogNo && itmType == item.ItmType))
                                 {
                                     SAPbouiCOM.EditText _price = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("5").Cells.Item(i).Specific;
                                     SAPbouiCOM.EditText _validTo = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("U_Valid_Until").Cells.Item(i).Specific;
                                     SAPbouiCOM.EditText _ref = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("U_QUOTE_REF").Cells.Item(i).Specific;
                                     SAPbouiCOM.EditText _dMaker = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("U_DeciMaker").Cells.Item(i).Specific;
-                                    SAPbouiCOM.EditText _itmType = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("U_ItemType").Cells.Item(i).Specific;
                                     SAPbouiCOM.ComboBox _cbxPL = (SAPbouiCOM.ComboBox)s_priceMtx.Columns.Item("3").Cells.Item(i).Specific;
                                     try { _price.Value = $"{item.Currency} {item.Price}"; } catch { _price.Value = ""; }
                                     try { _validTo.Value = item.ValidTo; } catch { _validTo.Value = ""; }
@@ -388,6 +398,7 @@ namespace BusinessPartnerSpecialPrice
                         int cnt = 1;
                         int totalItems = _bpCNoItems.Count();
                         SAPbouiCOM.Matrix bpCatalogMtx = (SAPbouiCOM.Matrix)oApplication.Forms.ActiveForm.Items.Item("0_U_G").Specific;
+                        List<GridItemsInfo> tempItems = new List<GridItemsInfo>();
                         foreach (BPCatalogItem _item in _bpCNoItems)
                         {                              
                             try
@@ -397,6 +408,19 @@ namespace BusinessPartnerSpecialPrice
                                 {
                                     bpCatalogMtx.AddRow();
                                 }
+
+                                var checkItem = new GridItemsInfo()
+                                {
+                                    code = _item.BPCatalogNo,
+                                    name = _item.ItemName,
+                                    type = _item.ItmType
+                                };
+
+                                if (tempItems.Where( x => x.code == checkItem.code && x.type == checkItem.type).Count() > 0) 
+                                {
+                                    continue;
+                                }
+                                
                                 SAPbouiCOM.EditText _rowNo = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("#").Cells.Item(cnt).Specific;
                                 SAPbouiCOM.EditText _bpCNo = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("C_0_1").Cells.Item(cnt).Specific;
                                 SAPbouiCOM.EditText _itemCodeCol = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("Col_0").Cells.Item(cnt).Specific;
@@ -411,6 +435,8 @@ namespace BusinessPartnerSpecialPrice
                                 _rowNo.Value = cnt.ToString();
                                 //_validFromBPSP.Value = ValidFrom;
                                 //_validToBPSP.Value = ValidTo;
+
+                                tempItems.Add(checkItem);
                                 oApplication.StatusBar.SetText($"Loading BP Catalog Items {cnt} of {totalItems}. Please wait...", SAPbouiCOM.BoMessageTime.bmt_Short, SAPbouiCOM.BoStatusBarMessageType.smt_Warning);
                                 cnt++;                                
                                 
@@ -473,6 +499,12 @@ namespace BusinessPartnerSpecialPrice
             {
                 Program.oApplication.StatusBar.SetText(ex.Message, SAPbouiCOM.BoMessageTime.bmt_Short, SAPbouiCOM.BoStatusBarMessageType.smt_Error);
             }
+        }
+        public class GridItemsInfo
+        {
+            public string code { get; set; }
+            public string name { get; set; }
+            public string type { get; set; }
         }
     }
 }
