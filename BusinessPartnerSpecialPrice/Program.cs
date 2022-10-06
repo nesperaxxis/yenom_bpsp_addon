@@ -111,12 +111,10 @@ namespace BusinessPartnerSpecialPrice
 
                             oApplication.StatusBar.SetText($"Updating Special Prices {cnt} of {totalItems}, Please wait...", SAPbouiCOM.BoMessageTime.bmt_Short, SAPbouiCOM.BoStatusBarMessageType.smt_Warning);
 
-                            var isExists = false;
                             var _priceList = 0;
-                            int i = 1;
-                            
-                            while(!isExists && s_priceMtx.RowCount >= i)
-                            {
+                            var isExists = false;
+                            for (int i = 1; s_priceMtx.RowCount >= i; i++)
+                            {                                
                                 SAPbouiCOM.EditText _itemCodeCol = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("1").Cells.Item(i).Specific;
                                 SAPbouiCOM.EditText _itmType = (SAPbouiCOM.EditText)s_priceMtx.Columns.Item("U_ItemType").Cells.Item(i).Specific;
 
@@ -124,7 +122,7 @@ namespace BusinessPartnerSpecialPrice
                                 checkBPCode.DoQuery("SELECT s.Substitute, i.U_ITEM_TYPE " + 
                                                     "FROM OSCN s JOIN OITM i ON i.ItemCode = s.ItemCode " + 
                                                     "WHERE COALESCE(s.ItemCode,'') <> '' AND s.CardCode ='" + BPCode + "' " + 
-                                                    "AND COALESCE(s.ItemCode,'') = '" + _itemCodeCol +  "' AND i.frozenfor = 'N' AND i.validfor = 'Y'");
+                                                    "AND COALESCE(s.ItemCode,'') = '" + _itemCodeCol.Value?.ToString() +  "' AND i.frozenfor = 'N' AND i.validfor = 'Y'");
                                 var bpCatCode = Convert.ToString(checkBPCode.Fields.Item(0).Value);
                                 var itmType = Convert.ToString(checkBPCode.Fields.Item(1).Value);
 
@@ -144,7 +142,6 @@ namespace BusinessPartnerSpecialPrice
                                     int.TryParse(_cbxPL?.Selected.Value, out _priceList);
                                     isExists = true;                                  
                                 }
-                                i++;
                             }
 
                             if (!isExists)
@@ -283,6 +280,7 @@ namespace BusinessPartnerSpecialPrice
                     {                        
                         SAPbouiCOM.EditText _itemCodeCol = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("Col_0").Cells.Item(i).Specific;
                         SAPbouiCOM.EditText _itemNameCol = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("Col_1").Cells.Item(i).Specific;
+                        SAPbouiCOM.EditText _bpCCode = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("C_0_1").Cells.Item(i).Specific;
                         SAPbouiCOM.EditText _prce = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("C_0_3").Cells.Item(i).Specific;
                         SAPbouiCOM.EditText _validTo = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("C_0_5").Cells.Item(i).Specific;
                         SAPbouiCOM.EditText _itemType = (SAPbouiCOM.EditText)bpCatalogMtx.Columns.Item("Col_3").Cells.Item(i).Specific;
@@ -294,6 +292,7 @@ namespace BusinessPartnerSpecialPrice
                         {
                             oBPItems.Add(new BPCatalogItem()
                             {
+                                BPCatalogNo = _bpCCode.Value?.ToString() ?? "",
                                 ItemCode = _itemCodeCol.Value?.ToString() ?? "",
                                 ItemName = _itemNameCol.Value?.ToString() ?? "",
                                 Price = _prce.Value?.ToString() ?? "",
@@ -446,7 +445,7 @@ namespace BusinessPartnerSpecialPrice
                                 oApplication.StatusBar.SetText(ex.InnerException?.Message ?? ex.Message, SAPbouiCOM.BoMessageTime.bmt_Short, SAPbouiCOM.BoStatusBarMessageType.smt_Success);
                             }
                         }
-                        oApplication.StatusBar.SetText($"All items loaded successfully.", SAPbouiCOM.BoMessageTime.bmt_Medium, SAPbouiCOM.BoStatusBarMessageType.smt_Success);
+                        oApplication.StatusBar.SetText($"All items loaded successfully.", SAPbouiCOM.BoMessageTime.bmt_Short, SAPbouiCOM.BoStatusBarMessageType.smt_Success);
 
                         //
                         //for (int i = 1; i <= bpCatalogMtx.RowCount; i++)
